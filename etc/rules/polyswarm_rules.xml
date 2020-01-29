@@ -1,0 +1,19 @@
+<group name="polyswarm,syscheck,">
+    <rule id="101000" level="0">
+        <decoded_as>json</decoded_as>
+        <field name="integration">custom-polyswarm</field>
+        <description>Polyswarm integration messages.</description>
+        <options>no_full_log</options>
+    </rule>
+    <rule id="101001" level="3">
+        <if_sid>101000</if_sid>
+        <field name="custom-polyswarm.status">ok</field>
+        <description>Polyswarm: Status - OK</description>
+        <options>no_full_log</options>
+    </rule>
+    <rule id="101002" level="3">
+        <if_sid>101000</if_sid>
+        <description>Polyswarm: Status - NOT OK</description>
+        <options>no_full_log</options>
+    </rule>
+</group>
