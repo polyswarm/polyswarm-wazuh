@@ -8,7 +8,7 @@ cp integrations/{${INTEGRATION_NAME},${INTEGRATION_NAME}.py} /var/ossec/integrat
 chmod 750 /var/ossec/integrations/{${INTEGRATION_NAME},${INTEGRATION_NAME}.py}
 chown root:ossec /var/ossec/integrations/{${INTEGRATION_NAME},${INTEGRATION_NAME}.py}
 
-if [ -z "${1}" ] && [ "${1}" == "restart" ]; then
+if [ -n "${1}" ] && [ "${1}" == "restart" ]; then
     systemctl restart wazuh-manager
     systemctl restart wazuh-api
 fi
