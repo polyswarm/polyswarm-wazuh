@@ -156,22 +156,18 @@ class PolySwarm:
 
                     if OUTPUT_METADATA:
                         for h, h_val in artifact.metadata.hash.items():
-                            print("PRINTING METADATA")
                             print(str(h), str(h_val))
                             self.create_output(f'metadata.hash.{str(h)}', str(h_val))
 
                         for h, h_val in artifact.metadata.pefile.items():
-                            print("PRINTING METADATA")
                             print(str(h), str(h_val))
                             self.create_output(f'metadata.pefile.{str(h)}', str(h_val))
 
                         for h, h_val in artifact.metadata.lief.items():
-                            print("PRINTING METADATA")
                             print(str(h), str(h_val))
                             self.create_output(f'metadata.lief.{str(h)}', str(h_val))
 
                         for h, h_val in artifact.metadata.exiftool.items():
-                            print("PRINTING METADATA")
                             print(str(h), str(h_val))
                             self.create_output(f'metadata.exiftool.{str(h)}', str(h_val))
 
