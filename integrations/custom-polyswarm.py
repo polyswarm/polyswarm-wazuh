@@ -1,5 +1,7 @@
 #!/usr/bin/python3.6
 #
+# PolySwarm Integration <info@polyswarm.io>
+#
 # This program is free software; you can redistribute it
 # and/or modify it under the terms of the GNU General Public
 # License (version 2) as published by the FSF - Free Software
@@ -15,7 +17,7 @@ from socket import socket, AF_UNIX, SOCK_DGRAM
 try:
     from polyswarm_api.api import PolyswarmAPI
 except Exception as e:
-    Print.error('No module \'polyswarm_api\' found. Install: pip install polyswarm-api==v1.1.1')
+    Print.error('No module \'polyswarm_api\' found. Install: pip3 install polyswarm-api==v1.1.1')
     sys.exit(1)
 
 # ossec.conf configuration:
@@ -68,7 +70,7 @@ class Print:
 
     @staticmethod
     def error(msg):
-        msg = f'{Print._get_time()}i ERROR: {msg}'
+        msg = f'{Print._get_time()} ERROR: {msg}'
 
         print(msg)
 
@@ -98,13 +100,12 @@ class PolySwarm:
         self.polyswarm_api = PolyswarmAPI(apikey)
         self.alert_output = {}
         self.alert_output['integration'] = INTEGRATION_NAME
-        self.alert_output[INTEGRATION_NAME] = {}
-        self.alert_output[INTEGRATION_NAME]['status'] = 'ok'
+        self.alert_output['polyswarm'] = {}
+        self.alert_output['polyswarm']['status'] = 'ok'
 
     def create_output(self, key, value, variable_type='String'):
         key = key.rstrip('.')
-        prefix = INTEGRATION_NAME
-        self.alert_output[INTEGRATION_NAME][key] = value
+        self.alert_output['polyswarm'][key] = value
 
     def return_output(self):
         return self.alert_output
@@ -189,7 +190,7 @@ class PolySwarm:
 
                     return
         except Exception as e:
-            self.tcex.log.error('Uncaught exception {}'.format(e))
+            Print.error(f'Uncaught exception {e}')
 
 
 
@@ -236,9 +237,9 @@ if __name__ == '__main__':
         Print.debug(f'args list: {len_sys}')
         if len(sys.argv) >= 3:
             msg = '{} {} {} {}'.format(sys.argv[0],
-                                               sys.argv[1],
-                                               sys.argv[2],
-                                               sys.argv[3] if len(sys.argv) > 4 else '')
+                                       sys.argv[1],
+                                       sys.argv[2],
+                                       sys.argv[3] if len(sys.argv) > 4 else '')
             debug_enabled = (len(sys.argv) > 3 and sys.argv[3] == 'debug')
             Print.log(msg)
         else:
