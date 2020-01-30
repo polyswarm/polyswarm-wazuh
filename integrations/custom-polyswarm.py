@@ -30,10 +30,14 @@ except Exception as e:
 
 # Global vars
 
-INTEGRATION_NAME = 'custom-polyswarm'
+# grab metadata details and send to Manager
+OUTPUT_METADATA = False
 
+# debug flag for logs
 DEBUG_ENABLED = False
-OUTPUT_METADATA = True
+
+# name for this integration used in events
+INTEGRATION_NAME = 'custom-polyswarm'
 
 # Set paths
 PWD = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -114,16 +118,13 @@ class PolySwarm:
         return self.alert_output
 
     def search_hash(self, hash):
-        """Search Hash"""
         try:
             Print.debug(f'PolySwarm Search Hash: {hash}')
-            results = self.polyswarm_api.search(hash.lower().lstrip().rstrip())
+            results = self.polyswarm_api.search(hash.lower().strip())
             for search_result in results:
                 if search_result.failed:
                     self.create_output('status', 'ko')
                     Print.error(f'Failed to get result for {search_result.failure_reason}')
-                    # todo mark playbook step as failed so we respond appr
-
                     return
 
                 for artifact in search_result.result:
@@ -171,10 +172,11 @@ class PolySwarm:
                             print(str(h), str(h_val))
                             self.create_output(f'metadata.exiftool.{str(h)}', str(h_val))
 
-                    self.create_output('name', artifact.name)
                     self.create_output('sha1', artifact.sha1.hash)
                     self.create_output('sha256', artifact.sha256.hash)
                     self.create_output('md5', artifact.md5.hash)
+                    self.create_output('mimetype', artifact.mimetype)
+                    self.create_output('extended_type', artifact.extended_type)
                     self.create_output('permalink', artifact.scan_permalink)
 
 
@@ -207,7 +209,7 @@ def main(args):
     Print.debug(json_alert)
 
     # If there is no a md5 checksum present in the alert. Exit.
-    if not 'md5_after' in json_alert['syscheck']:
+    if not 'md5_after' in json_alert.get('syscheck'):
         return(0)
 
     polyswarm = PolySwarm(apikey)
@@ -219,7 +221,6 @@ def main(args):
     polyswarm.create_output('source.file', json_alert['syscheck']['path'])
     polyswarm.create_output('source.md5', json_alert['syscheck']['md5_after'])
     polyswarm.create_output('source.sha1', json_alert['syscheck']['sha1_after'])
-
 
     send_event(polyswarm.return_output(),
                json_alert['agent'])
