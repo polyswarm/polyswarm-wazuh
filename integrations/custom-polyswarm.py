@@ -32,7 +32,8 @@ except Exception as e:
 
 INTEGRATION_NAME = 'custom-polyswarm'
 
-debug_enabled = False
+DEBUG_ENABLED = False
+OUTPUT_METADATA = True
 
 # Set paths
 PWD = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
@@ -53,7 +54,7 @@ class Print:
 
     @staticmethod
     def debug(msg):
-        if debug_enabled:
+        if DEBUG_ENABLED:
             msg = f'{Print._get_time()} DEBUG: {msg}'
 
             print(msg)
@@ -89,6 +90,7 @@ def send_event(msg, agent = None):
         string = f'1:[{agent_id}] ({agent_name}) {agent_ip}->{INTEGRATION_NAME}:{json_msg}'
 
     Print.debug(f'event: {string}')
+
     sock = socket(AF_UNIX, SOCK_DGRAM)
     sock.connect(SOCKET_ADDR)
     sock.send(string.encode())
@@ -102,9 +104,10 @@ class PolySwarm:
         self.alert_output['integration'] = INTEGRATION_NAME
         self.alert_output['polyswarm'] = {}
         self.alert_output['polyswarm']['status'] = 'ok'
+        self.alert_output['polyswarm']['found'] = 0
+        self.alert_output['polyswarm']['malicious'] = 0
 
-    def create_output(self, key, value, variable_type='String'):
-        key = key.rstrip('.')
+    def create_output(self, key, value):
         self.alert_output['polyswarm'][key] = value
 
     def return_output(self):
@@ -112,12 +115,12 @@ class PolySwarm:
 
     def search_hash(self, hash):
         """Search Hash"""
-        # TODO: Refactor
         try:
-            Print.debug(f'Running hash search on {hash}')
+            Print.debug(f'PolySwarm Search Hash: {hash}')
             results = self.polyswarm_api.search(hash.lower().lstrip().rstrip())
             for search_result in results:
                 if search_result.failed:
+                    self.create_output('status', 'ko')
                     Print.error(f'Failed to get result for {search_result.failure_reason}')
                     # todo mark playbook step as failed so we respond appr
 
@@ -125,72 +128,64 @@ class PolySwarm:
 
                 for artifact in search_result.result:
                     Print.debug('Got artifact results')
-
-                    self.create_output('sha1', artifact.sha1.hash)
-                    self.create_output('sha256', artifact.sha256.hash)
-                    self.create_output('md5', artifact.md5.hash)
-
-                    for h, h_val in artifact.metadata.hash.items():
-                        self.create_output(str(h), str(h_val))
-
-                    # a score between 0.0 and 1.0 indicating malintent
-                    polyscore = artifact.polyscore
+                    self.alert_output['polyswarm']['found'] = 1
 
                     # all assertion responses from engines
                     all_assertions = artifact.last_scan.assertions
+
                     # malicious only assertions from engines
                     malicious_detections = list(artifact.last_scan.detections)
+                    self.create_output('positives', len(malicious_detections))
 
-                    mal_detect_ratio = float(len(malicious_detections)) / len(all_assertions) if len(malicious_detections) else 0.0
-                    self.create_output('malicious_detections.ratio',
-                                       mal_detect_ratio)
+                    # total engines asserting
+                    self.create_output('total', len(all_assertions))
 
-                    # return because we're only matching first hash
-                    self.create_output('malicious_detections.count', len(malicious_detections))
-                    self.create_output('malicious_detections.confidence', int(mal_detect_ratio * 50 + polyscore * 50))
-                    self.create_output('assertions.count', len(all_assertions))
-
-                    self.create_output('polyscore', polyscore)
-
-
-                    longest_malware_family_name = ""
+                    # a score between 0.0 and 1.0 indicating malintent
+                    self.create_output('polyscore', artifact.polyscore)
 
                     if malicious_detections:
-                        detection_kva = []
-                        detection_str = []
                         for assertion in all_assertions:
-                            d = {
-                                'verdict': 'malicious' if assertion.verdict else 'benign',
-                                'engine_name': assertion.engine_name,
-                                'malware_family': assertion.metadata.get('malware_family', '')
-                            }
+                            # output only by malicious ones
+                            if assertion.verdict:
+                                self.create_output(f'microengine.{assertion.engine_name}.verdict', 'maliciuos')
+                                if assertion.metadata.get('malware_family'):
+                                    self.create_output(f'microengine.{assertion.engine_name}.malware_family',
+                                                       assertion.metadata.get('malware_family'))
 
-                            detection_str.append('{}: {}'.format(assertion.engine_name, assertion.metadata.get('malware_family', '')))
+                                self.alert_output['polyswarm']['malicious'] = 1
 
-                            detection_kva.append(d)
-                            self.create_output('assertions.{}.{}'.format(assertion.engine_name, 'verdict'),
-                                               'malicious' if assertion.verdict else 'benign')
+                    if OUTPUT_METADATA:
+                        for h, h_val in artifact.metadata.hash.items():
+                            print("PRINTING METADATA")
+                            print(str(h), str(h_val))
+                            self.create_output(f'metadata.hash.{str(h)}', str(h_val))
 
-                            e_malware_fam = assertion.metadata.get('malware_family', '')
-                            if e_malware_fam:
-                                self.create_output('{}.{}'.format(assertion.engine_name, 'malware_family'),
-                                                   e_malware_fam)
-                            if len(e_malware_fam) > len(longest_malware_family_name):
-                                longest_malware_family_name = e_malware_fam
+                        for h, h_val in artifact.metadata.pefile.items():
+                            print("PRINTING METADATA")
+                            print(str(h), str(h_val))
+                            self.create_output(f'metadata.pefile.{str(h)}', str(h_val))
 
-                            self.create_output('assertions.{}.{}'.format(assertion.engine_name, 'malware_family'),
-                                               longest_malware_family_name)
-                        self.create_output('malicious_detections.details', detection_kva, variable_type='KeyValueArray')
-                        self.create_output('longest_malware_family_name', longest_malware_family_name)
+                        for h, h_val in artifact.metadata.lief.items():
+                            print("PRINTING METADATA")
+                            print(str(h), str(h_val))
+                            self.create_output(f'metadata.lief.{str(h)}', str(h_val))
 
-                        # todo figure out how do get playbooks to iterate through KVAs without dirty hacks.
+                        for h, h_val in artifact.metadata.exiftool.items():
+                            print("PRINTING METADATA")
+                            print(str(h), str(h_val))
+                            self.create_output(f'metadata.exiftool.{str(h)}', str(h_val))
 
-                        #self.create_output('malicious_detections_str', '\n'.join(detection_str))
+                    self.create_output('name', artifact.name)
+                    self.create_output('sha1', artifact.sha1.hash)
+                    self.create_output('sha256', artifact.sha256.hash)
+                    self.create_output('md5', artifact.md5.hash)
+                    self.create_output('permalink', artifact.scan_permalink)
 
-                    return
+
         except Exception as e:
-            Print.error(f'Uncaught exception {e}')
-
+            import traceback
+            traceback.print_exc()
+            Print.error(f'Uncaught exception {traceback.print_exc()}')
 
 
 def main(args):
@@ -215,13 +210,20 @@ def main(args):
     Print.debug('# Processing alert')
     Print.debug(json_alert)
 
-    polyswarm = PolySwarm(apikey)
-
     # If there is no a md5 checksum present in the alert. Exit.
     if not 'md5_after' in json_alert['syscheck']:
         return(0)
 
+    polyswarm = PolySwarm(apikey)
+
     polyswarm.search_hash(json_alert['syscheck']['md5_after'])
+
+    # set output from Wazuh details
+    polyswarm.create_output('source.alert_id', json_alert['id'])
+    polyswarm.create_output('source.file', json_alert['syscheck']['path'])
+    polyswarm.create_output('source.md5', json_alert['syscheck']['md5_after'])
+    polyswarm.create_output('source.sha1', json_alert['syscheck']['sha1_after'])
+
 
     send_event(polyswarm.return_output(),
                json_alert['agent'])
@@ -239,7 +241,7 @@ if __name__ == '__main__':
                                        sys.argv[1],
                                        sys.argv[2],
                                        sys.argv[3] if len(sys.argv) > 4 else '')
-            debug_enabled = (len(sys.argv) > 3 and sys.argv[3] == 'debug')
+            DEBUG_ENABLED = (len(sys.argv) > 3 and sys.argv[3] == 'debug')
             Print.log(msg)
         else:
             msg = '{0} Wrong arguments'.format(now)
