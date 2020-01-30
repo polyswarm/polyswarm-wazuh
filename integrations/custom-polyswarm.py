@@ -170,7 +170,6 @@ class PolySwarm:
                             detection_kva.append(d)
                             self.create_output('assertions.{}.{}'.format(assertion.engine_name, 'verdict'),
                                                'malicious' if assertion.verdict else 'benign')
-                            self.create_output('assertions.{}.{}'.format(assertion.engine_name, 'bid'), assertion.bid)
 
                             e_malware_fam = assertion.metadata.get('malware_family', '')
                             if e_malware_fam:
