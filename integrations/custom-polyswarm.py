@@ -7,6 +7,7 @@
 # License (version 2) as published by the FSF - Free Software
 # Foundation.
 
+import traceback
 import json
 import sys
 import time
@@ -107,7 +108,6 @@ class PolySwarm:
         self.alert_output = {}
         self.alert_output['integration'] = INTEGRATION_NAME
         self.alert_output['polyswarm'] = {}
-        self.alert_output['polyswarm']['status'] = 'ok'
         self.alert_output['polyswarm']['found'] = 0
         self.alert_output['polyswarm']['malicious'] = 0
 
@@ -123,8 +123,7 @@ class PolySwarm:
             results = self.polyswarm_api.search(hash.lower().strip())
             for search_result in results:
                 if search_result.failed:
-                    self.create_output('status', 'ko')
-                    Print.error(f'Failed to get result for {search_result.failure_reason}')
+                    Print.debug(f'Failed to get result: {search_result.failure_reason}')
                     return
 
                 for artifact in search_result.result:
@@ -181,7 +180,9 @@ class PolySwarm:
 
 
         except Exception as e:
-            import traceback
+            self.create_output('error', "1")
+            self.create_output('description', str(e))
+
             traceback.print_exc()
             Print.error(f'Uncaught exception {traceback.print_exc()}')
 
