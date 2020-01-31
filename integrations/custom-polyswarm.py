@@ -42,8 +42,11 @@ INTEGRATION_NAME = 'custom-polyswarm'
 
 # Set paths
 PWD = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
-LOG_FILE = f'{PWD}/logs/integrations-polyswarm.log'
-ERR_FILE = f'{PWD}/logs/integrations-polyswarm-err.log'
+# Wazuh log file for integrations
+LOG_FILE = f'{PWD}/logs/integrations.log'
+# Error log path - change for debug
+ERR_FILE = LOG_FILE
+# Socket for events
 SOCKET_ADDR = f'{PWD}/queue/ossec/queue'
 
 class Print:
