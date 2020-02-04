@@ -238,11 +238,13 @@ if __name__ == '__main__':
         len_sys = len(sys.argv)
         Print.debug(f'args list: {len_sys}')
         if len(sys.argv) >= 3:
+            if 'debug' in sys.argv:
+                DEBUG_ENABLED = True
+
             msg = '{} {} {} {}'.format(sys.argv[0],
                                        sys.argv[1],
                                        sys.argv[2],
-                                       sys.argv[3] if len(sys.argv) > 4 else '')
-            DEBUG_ENABLED = (len(sys.argv) > 3 and sys.argv[3] == 'debug')
+                                       'debug' if DEBUG_ENABLED else '')
             Print.log(msg)
         else:
             msg = '{0} Wrong arguments'.format(now)
