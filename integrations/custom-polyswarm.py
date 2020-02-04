@@ -241,10 +241,12 @@ if __name__ == '__main__':
             if 'debug' in sys.argv:
                 DEBUG_ENABLED = True
 
-            msg = '{} {} {} {}'.format(sys.argv[0],
-                                       sys.argv[1],
-                                       sys.argv[2],
-                                       'debug' if DEBUG_ENABLED else '')
+            msg = '{0} {1} {2} {3}'.\
+                    format(Print._get_time(),
+                           sys.argv[1], # alert file
+                           sys.argv[2], # api key
+                           'debug' if DEBUG_ENABLED else '')
+
             Print.log(msg)
         else:
             msg = '{0} Wrong arguments'.format(now)
