@@ -213,7 +213,14 @@ def main(args):
     Print.debug(json_alert)
 
     # If there is no a md5 checksum present in the alert. Exit.
-    if not 'md5_after' in json_alert.get('syscheck'):
+    if not json_alert.get('syscheck') or \
+       not 'md5_after' in json_alert.get('syscheck'):
+        Print.error('syscheck key error')
+        return(0)
+
+    # check when Agent sends 'xxx' as a hash
+    if json_alert['syscheck']['md5_after'] == 'xxx':
+        Print.error('md5_after == \'xxx\' - Skipping.')
         return(0)
 
     polyswarm = PolySwarm(apikey)
