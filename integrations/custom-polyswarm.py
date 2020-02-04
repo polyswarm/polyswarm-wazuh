@@ -235,8 +235,6 @@ def main(args):
 if __name__ == '__main__':
     try:
         # Read arguments
-        len_sys = len(sys.argv)
-        Print.debug(f'args list: {len_sys}')
         if len(sys.argv) >= 3:
             if 'debug' in sys.argv:
                 DEBUG_ENABLED = True
