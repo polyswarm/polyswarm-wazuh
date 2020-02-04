@@ -251,7 +251,7 @@ if __name__ == '__main__':
         else:
             msg = '{0} Wrong arguments'.format(now)
             Print.error(msg)
-            debug('# Exiting: Bad arguments.')
+            Print.debug('# Exiting: Bad arguments.')
             sys.exit(1)
 
         # Main function
