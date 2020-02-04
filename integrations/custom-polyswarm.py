@@ -51,7 +51,7 @@ SOCKET_ADDR = f'{PWD}/queue/ossec/queue'
 
 class Print:
     @staticmethod
-    def _get_time():
+    def get_time():
         return time.strftime('%a %b %d %H:%M:%S %Z %Y')
 
     @staticmethod
@@ -63,7 +63,7 @@ class Print:
     @staticmethod
     def debug(msg):
         if DEBUG_ENABLED:
-            msg = f'{Print._get_time()} DEBUG: {msg}'
+            msg = f'{Print.get_time()} DEBUG: {msg}'
 
             print(msg)
 
@@ -71,7 +71,7 @@ class Print:
 
     @staticmethod
     def log(msg):
-        msg = f'{Print._get_time()} {msg}'
+        msg = f'{Print.get_time()} {msg}'
 
         print(msg)
 
@@ -79,7 +79,7 @@ class Print:
 
     @staticmethod
     def error(msg):
-        msg = f'{Print._get_time()} ERROR: {msg}'
+        msg = f'{Print.get_time()} ERROR: {msg}'
 
         print(msg)
 
@@ -242,7 +242,7 @@ if __name__ == '__main__':
                 DEBUG_ENABLED = True
 
             msg = '{0} {1} {2} {3}'.\
-                    format(Print._get_time(),
+                    format(Print.get_time(),
                            sys.argv[1], # alert file
                            sys.argv[2], # api key
                            'debug' if DEBUG_ENABLED else '')
