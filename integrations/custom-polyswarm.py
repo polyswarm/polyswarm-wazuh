@@ -51,7 +51,7 @@ SOCKET_ADDR = f'{PWD}/queue/ossec/queue'
 
 class Print:
     @staticmethod
-    def _get_time():
+    def get_time():
         return time.strftime('%a %b %d %H:%M:%S %Z %Y')
 
     @staticmethod
@@ -63,7 +63,7 @@ class Print:
     @staticmethod
     def debug(msg):
         if DEBUG_ENABLED:
-            msg = f'{Print._get_time()} DEBUG: {msg}'
+            msg = f'{Print.get_time()} DEBUG: {msg}'
 
             print(msg)
 
@@ -71,7 +71,7 @@ class Print:
 
     @staticmethod
     def log(msg):
-        msg = f'{Print._get_time()} {msg}'
+        msg = f'{Print.get_time()} {msg}'
 
         print(msg)
 
@@ -79,7 +79,7 @@ class Print:
 
     @staticmethod
     def error(msg):
-        msg = f'{Print._get_time()} ERROR: {msg}'
+        msg = f'{Print.get_time()} ERROR: {msg}'
 
         print(msg)
 
@@ -213,7 +213,14 @@ def main(args):
     Print.debug(json_alert)
 
     # If there is no a md5 checksum present in the alert. Exit.
-    if not 'md5_after' in json_alert.get('syscheck'):
+    if not json_alert.get('syscheck') or \
+       not 'md5_after' in json_alert.get('syscheck'):
+        Print.error('syscheck key error')
+        return(0)
+
+    # check when Agent sends 'xxx' as a hash
+    if json_alert['syscheck']['md5_after'] == 'xxx':
+        Print.error('md5_after == \'xxx\' - Skipping.')
         return(0)
 
     polyswarm = PolySwarm(apikey)
@@ -235,19 +242,21 @@ def main(args):
 if __name__ == '__main__':
     try:
         # Read arguments
-        len_sys = len(sys.argv)
-        Print.debug(f'args list: {len_sys}')
         if len(sys.argv) >= 3:
-            msg = '{} {} {} {}'.format(sys.argv[0],
-                                       sys.argv[1],
-                                       sys.argv[2],
-                                       sys.argv[3] if len(sys.argv) > 4 else '')
-            DEBUG_ENABLED = (len(sys.argv) > 3 and sys.argv[3] == 'debug')
+            if 'debug' in sys.argv:
+                DEBUG_ENABLED = True
+
+            msg = '{0} {1} {2} {3}'.\
+                    format(Print.get_time(),
+                           sys.argv[1], # alert file
+                           sys.argv[2], # api key
+                           'debug' if DEBUG_ENABLED else '')
+
             Print.log(msg)
         else:
             msg = '{0} Wrong arguments'.format(now)
             Print.error(msg)
-            debug('# Exiting: Bad arguments.')
+            Print.debug('# Exiting: Bad arguments.')
             sys.exit(1)
 
         # Main function
