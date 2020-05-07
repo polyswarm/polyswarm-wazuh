@@ -4,7 +4,7 @@
 
 * yum -y install python3.6
 * yum -y install python3-pip
-* pip3 install polyswarm-api==1.1.1
+* pip3 install polyswarm-api==2.1.1
 
 ## Install
 

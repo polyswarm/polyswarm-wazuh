@@ -13,4 +13,6 @@ if [ -n "${1}" ] && [ "${1}" == "restart" ]; then
     systemctl restart wazuh-api
 fi
 
+printf "* PolySwarm successfully installed.\n"
+
 #eof
