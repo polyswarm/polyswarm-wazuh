@@ -17,8 +17,10 @@ from socket import socket, AF_UNIX, SOCK_DGRAM
 
 try:
     from polyswarm_api.api import PolyswarmAPI
+    from polyswarm_api import get_version
+    from polyswarm_api import exceptions as api_exceptions
 except Exception as e:
-    Print.error('No module \'polyswarm_api\' found. Install: pip3 install polyswarm-api==v1.1.1')
+    Print.error('No module \'polyswarm_api\' found. Install: pip3 install polyswarm-api==v2.1.1')
     sys.exit(1)
 
 # ossec.conf configuration:
@@ -32,7 +34,7 @@ except Exception as e:
 # Global vars
 
 # grab metadata details and send to Manager
-OUTPUT_METADATA = False
+OUTPUT_METADATA = True
 
 # debug flag for logs
 DEBUG_ENABLED = False
@@ -123,64 +125,67 @@ class PolySwarm:
     def search_hash(self, hash):
         try:
             Print.debug(f'PolySwarm Search Hash: {hash}')
+
             results = self.polyswarm_api.search(hash.lower().strip())
-            for search_result in results:
-                if search_result.failed:
-                    Print.debug(f'Failed to get result: {search_result.failure_reason}')
+
+            for artifact in results:
+                if artifact.failed:
+                    msg = 'Failed to get result.'
+                    Print.debug(msg)
+                    self.create_output('error', "1")
+                    self.create_output('description', msg)
                     return
 
-                for artifact in search_result.result:
-                    Print.debug('Got artifact results')
-                    self.alert_output['polyswarm']['found'] = 1
+                self.alert_output['polyswarm']['found'] = 1
 
-                    # all assertion responses from engines
-                    all_assertions = artifact.last_scan.assertions
+                if not artifact.assertions:
+                    msg = 'This artifact has not been scanned. Rescan for checking assertions results.'
+                    Print.debug(msg)
+                    self.create_output('total', 0)
+                    self.create_output('positives', 0)
+                    self.create_output('description', msg)
+                    return
 
-                    # malicious only assertions from engines
-                    malicious_detections = list(artifact.last_scan.detections)
-                    self.create_output('positives', len(malicious_detections))
+                Print.debug('Got artifact results')
 
-                    # total engines asserting
-                    self.create_output('total', len(all_assertions))
+                # all assertion responses from engines
+                all_assertions = artifact.assertions
 
-                    # a score between 0.0 and 1.0 indicating malintent
-                    self.create_output('polyscore', artifact.polyscore)
+                # malicious only assertions from engines
+                malicious_detections = artifact.json['detections']['malicious']
+                self.create_output('positives', malicious_detections)
 
-                    if malicious_detections:
-                        for assertion in all_assertions:
-                            # output only by malicious ones
-                            if assertion.verdict:
-                                self.create_output(f'microengine.{assertion.engine_name}.verdict', 'maliciuos')
-                                if assertion.metadata.get('malware_family'):
-                                    self.create_output(f'microengine.{assertion.engine_name}.malware_family',
-                                                       assertion.metadata.get('malware_family'))
+                # total engines asserting
+                total = artifact.json['detections']['total']
+                self.create_output('total', total)
 
-                                self.alert_output['polyswarm']['malicious'] = 1
+                # a score between 0.0 and 1.0 indicating malintent
+                self.create_output('polyscore', artifact.polyscore)
 
-                    if OUTPUT_METADATA:
-                        for h, h_val in artifact.metadata.hash.items():
-                            print(str(h), str(h_val))
-                            self.create_output(f'metadata.hash.{str(h)}', str(h_val))
+                if malicious_detections:
+                    for assertion in all_assertions:
+                        # output only by malicious ones
+                        if assertion.verdict:
+                            self.create_output(f'microengine.{assertion.engine_name}.verdict', 'maliciuos')
+                            if assertion.metadata.get('malware_family'):
+                                self.create_output(f'microengine.{assertion.engine_name}.malware_family',
+                                                   assertion.metadata.get('malware_family'))
 
-                        for h, h_val in artifact.metadata.pefile.items():
-                            print(str(h), str(h_val))
-                            self.create_output(f'metadata.pefile.{str(h)}', str(h_val))
+                            self.alert_output['polyswarm']['malicious'] = 1
 
-                        for h, h_val in artifact.metadata.lief.items():
-                            print(str(h), str(h_val))
-                            self.create_output(f'metadata.lief.{str(h)}', str(h_val))
+                if OUTPUT_METADATA:
+                    for h, h_val in artifact.metadata.hash.items():
+                        self.create_output(f'metadata.hash.{str(h)}', str(h_val))
 
-                        for h, h_val in artifact.metadata.exiftool.items():
-                            print(str(h), str(h_val))
-                            self.create_output(f'metadata.exiftool.{str(h)}', str(h_val))
+                self.create_output('sha1', artifact.sha1)
+                self.create_output('sha256', artifact.sha256)
+                self.create_output('md5', artifact.md5)
+                self.create_output('mimetype', artifact.mimetype)
+                self.create_output('extended_type', artifact.extended_type)
+                self.create_output('permalink', artifact.permalink)
 
-                    self.create_output('sha1', artifact.sha1.hash)
-                    self.create_output('sha256', artifact.sha256.hash)
-                    self.create_output('md5', artifact.md5.hash)
-                    self.create_output('mimetype', artifact.mimetype)
-                    self.create_output('extended_type', artifact.extended_type)
-                    self.create_output('permalink', artifact.scan_permalink)
-
+        except api_exceptions.NoResultsException:
+            self.create_output('description', 'The request returned no results.')
 
         except Exception as e:
             self.create_output('error', "1")
@@ -194,6 +199,8 @@ def main(args):
     json_alert = {}
 
     Print.debug('# PolySwarm Starting')
+
+    Print.debug(f'Polyswarm - API Version: {get_version()}')
 
     # Read args
     alert_file_location = args[1]
