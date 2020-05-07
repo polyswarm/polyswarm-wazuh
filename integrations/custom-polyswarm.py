@@ -139,7 +139,7 @@ class PolySwarm:
                 self.alert_output['polyswarm']['found'] = 1
 
                 if not artifact.assertions:
-                    msg = 'This artifact has not been scanned. Rescan for checking assertions results.'
+                    msg = 'This artifact has not been scanned. Initiate a Scan on the artifact to get scan results."'
                     Print.debug(msg)
                     self.create_output('total', 0)
                     self.create_output('positives', 0)
