@@ -15,14 +15,6 @@ import os
 
 from socket import socket, AF_UNIX, SOCK_DGRAM
 
-try:
-    from polyswarm_api.api import PolyswarmAPI
-    from polyswarm_api import get_version
-    from polyswarm_api import exceptions as api_exceptions
-except Exception as e:
-    Print.error('No module \'polyswarm_api\' found. Install: pip3 install polyswarm-api==v2.1.1')
-    sys.exit(1)
-
 # ossec.conf configuration:
 #  <integration>
 #      <name>custom-polyswarm</name>
@@ -86,6 +78,15 @@ class Print:
         print(msg)
 
         Print._append_file(ERR_FILE, msg)
+
+
+try:
+    from polyswarm_api.api import PolyswarmAPI
+    from polyswarm_api import get_version
+    from polyswarm_api import exceptions as api_exceptions
+except Exception as e:
+    Print.error('No module \'polyswarm_api\' found. Install: pip3 install polyswarm-api==v2.1.1')
+    sys.exit(1)
 
 
 def send_event(msg, agent = None):
